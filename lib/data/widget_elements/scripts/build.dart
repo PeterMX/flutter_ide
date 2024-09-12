@@ -1,7 +1,5 @@
 import 'dart:io';
-import 'package:package_config/packages_file.dart';
 import 'package:widget_maker_2_0/data/widget_elements/scripts/properties/parser/models.dart';
-import 'package:widget_maker_2_0/data/widget_elements/scripts/widgets/generators/widget_generator.dart';
 import 'package:widget_maker_2_0/data/widget_elements/scripts/widgets/parser.dart';
 import 'package:widget_maker_2_0/data/widget_elements/scripts/properties/build_property.dart';
 import 'package:widget_maker_2_0/data/widget_elements/scripts/properties/parser/parser.dart';
@@ -18,7 +16,7 @@ void main() async {
   YamlMap widgets = parsedYaml["widgets"];
 
   List<ParsedWidget> parsedWidgets = [];
-  for(String widget in widgets.keys) {
+  for(String? widget in widgets.keys as Iterable<String?>) {
 
     YamlMap props = widgets[widget];
 

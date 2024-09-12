@@ -6,7 +6,6 @@ import 'package:widget_maker_2_0/data/widget_elements/base/instanced_widget_elem
 import 'package:widget_maker_2_0/data/widget_elements/base/widget_element.dart';
 import 'package:widget_maker_2_0/material.dart';
 import 'package:provider/provider.dart';
-import 'package:widget_maker_2_0/ui/board_widget.dart';
 import 'package:widget_maker_2_0/data/app_scope/currently_dragging.dart';
 import 'package:widget_maker_2_0/ui/utils/at_cursor_alert.dart';
 import 'package:widget_maker_2_0/ui/utils/global_draggable.dart';
@@ -23,25 +22,25 @@ Widget sizeWidgetWrapper(BuildContext context, Size size, Widget child) {
 }
 
 mixin ElementWidgetMixin on StatefulWidget {
-  String get id;
+  String? get id;
 }
 
-mixin ElementWidgetStateMixin<A extends WidgetElement, T extends ElementWidgetMixin> on State<T> {
-  A element;
+mixin ElementWidgetStateMixin<A extends WidgetElement?, T extends ElementWidgetMixin> on State<T> {
+  late A? element;
 
   bool isSelected = false;
 
-  WidgetBoard widgetBoard;
+  WidgetBoard? widgetBoard;
 
-  StreamSubscription _subscription;
-  StreamSubscription _anotherSubscription;
+  late StreamSubscription _subscription;
+  late StreamSubscription _anotherSubscription;
 
-  CurrentlyDraggingState currentlyDraggingState;
+  late CurrentlyDraggingState currentlyDraggingState;
 
   /// Whether this widget is part of a reference widget
-  bool isInReference;
+  late bool isInReference;
 
-  bool playMode;
+  late bool playMode;
 
   @override
   void initState() {
@@ -51,10 +50,10 @@ mixin ElementWidgetStateMixin<A extends WidgetElement, T extends ElementWidgetMi
 
     widgetBoard = project.widgetBoard;
 
-    element = widgetBoard.getWidgetElementFromAnySource(widget.id);
-    isSelected = widgetBoard.currentlySelectedValue == widget.id;
+    element = widgetBoard!.getWidgetElementFromAnySource(widget.id) as A?;
+    isSelected = widgetBoard!.currentlySelectedValue == widget.id;
 
-    isInReference = context.ancestorWidgetOfExactType(InstancedWidgetElementWidget) != null;
+    isInReference = context.findAncestorWidgetOfExactType<InstancedWidgetElementWidget>() != null;
 
 
     playMode = project.playModeStream.value;
@@ -64,8 +63,8 @@ mixin ElementWidgetStateMixin<A extends WidgetElement, T extends ElementWidgetMi
       });
     });
 
-    widgetBoard.registerUpdate(widget.id, refresh);
-    _subscription = widgetBoard.currentlySelected.listen((it) {
+    widgetBoard!.registerUpdate(widget.id, refresh);
+    _subscription = widgetBoard!.currentlySelected.listen((it) {
       isSelected = it == widget.id;
       refresh();
     });
@@ -81,31 +80,31 @@ mixin ElementWidgetStateMixin<A extends WidgetElement, T extends ElementWidgetMi
   void dispose() {
     _subscription.cancel();
     _anotherSubscription.cancel();
-    widgetBoard.removeUpdate(widget.id, refresh);
+    widgetBoard!.removeUpdate(widget.id, refresh);
     super.dispose();
   }
 
   void refresh() {
     setState(() {
-      element = widgetBoard.getWidgetElement(widget.id);
+      element = widgetBoard!.getWidgetElement(widget.id) as A?;
     });
   }
 
 
   /// Wrap the given child with widgets which take care of making it selectable and draggable
-  Widget wrapWithDefault({Widget child}) {
+  Widget? wrapWithDefault({Widget? child}) {
     if(isInReference) {
       return child;
     }
     return wrapWithSelector(
-      child: wrapWithDraggable(child: child)
+      child: wrapWithDraggable(child: child!)
     );
   }
 
-  Widget wrapWithDraggable({Widget child}) {
+  Widget wrapWithDraggable({required Widget child}) {
     return Draggable<String>(
       maxSimultaneousDrags: playMode? 0: 1,
-      data: element.id,
+      data: element!.id,
       child: child,
       onDragStarted: () {
         currentlyDraggingState.setDragging(true);
@@ -131,18 +130,18 @@ mixin ElementWidgetStateMixin<A extends WidgetElement, T extends ElementWidgetMi
     );
   }
 
-  Widget wrapWithSelector({Widget child}) {
+  Widget? wrapWithSelector({Widget? child}) {
     if(isInReference) {
       return child;
     }
 
-    Widget result = child;
+    Widget? result = child;
     // ToDO child is re-inflated here, fix this
     if (isSelected) {
       result = Stack(
         overflow: Overflow.visible,
         children: <Widget>[
-          child,
+          child!,
           Positioned.fill(
             child: IgnorePointer(
               child: Container(
@@ -153,7 +152,7 @@ mixin ElementWidgetStateMixin<A extends WidgetElement, T extends ElementWidgetMi
             ),
           ),
           Positioned(
-            child: Text(element.name),
+            child: Text(element!.name),
             top: -16,
             height: 16,
           ),
@@ -164,15 +163,15 @@ mixin ElementWidgetStateMixin<A extends WidgetElement, T extends ElementWidgetMi
     return GestureDetector(
       child: result,
       onTap: playMode? null: () {
-        widgetBoard.setSelected(widget.id);
+        widgetBoard!.setSelected(widget.id);
       },
     );
   }
 
 
 
-  Widget getChildOrDragTarget({String childId, SlotData data, WidgetWrapper widgetWrapper}) {
-    Widget child = widgetBoard.getWidgetElement(childId)?.generateWidget();
+  Widget? getChildOrDragTarget({String? childId, SlotData? data, WidgetWrapper? widgetWrapper}) {
+    Widget? child = widgetBoard!.getWidgetElement(childId)?.generateWidget();
 
     if(child != null) return child;
 
@@ -202,24 +201,24 @@ class ElementDragTarget extends StatelessWidget {
 
   final Widget acceptingWidget;
   final Widget child;
-  final String id;
-  final SlotData data;
-  final MyDragTargetMove<String> onMove;
+  final String? id;
+  final SlotData? data;
+  final MyDragTargetMove<String>? onMove;
 
-  const ElementDragTarget({Key key, @required this.acceptingWidget, @required this.id, @required this.child, this.data, this.onMove}) : super(key: key);
+  const ElementDragTarget({Key? key, required this.acceptingWidget, required this.id, required this.child, this.data, this.onMove}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     bool isDragging = Provider.of<CurrentlyDraggingState>(context).isDragging;
-    return StreamBuilder<String>(
-      stream: AppScope.of(context).widgetBoard.currentlySelected,
-      initialData: AppScope.of(context).widgetBoard.currentlySelectedValue,
+    return StreamBuilder<String?>(
+      stream: AppScope.of(context).widgetBoard!.currentlySelected,
+      initialData: AppScope.of(context).widgetBoard!.currentlySelectedValue,
       builder: (context, snapshot) {
         if(!isDragging && snapshot.data != id) return const SizedBox();
 
         return GlobalDragTarget<String>(
           onAccept: (childId) {
-            AppScope.of(context).widgetBoard.acceptChild(this.id, childId, data);
+            AppScope.of(context).widgetBoard!.acceptChild(this.id, childId, data);
           },
           onMove: onMove,
           builder: (context, accepted, rejected) {
@@ -238,11 +237,11 @@ class ElementDragTarget extends StatelessWidget {
 
 class DefaultDragTarget extends StatelessWidget {
 
-  const DefaultDragTarget({Key key, @required this.id, this.data}) : super(key: key);
+  const DefaultDragTarget({Key? key, required this.id, this.data}) : super(key: key);
 
-  final String id;
+  final String? id;
 
-  final SlotData data;
+  final SlotData? data;
 
   @override
   Widget build(BuildContext context) {

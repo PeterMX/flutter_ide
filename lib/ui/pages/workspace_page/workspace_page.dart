@@ -1,4 +1,4 @@
-import 'package:file_system_explorer/file_system_explorer.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -12,7 +12,7 @@ import 'package:widget_maker_2_0/ui/widgets/dialogs/quick_widget_access_dialog.d
 
 import 'bars/context_tool_bar/context_tool_bar.dart';
 import 'bars/left_bar/left_bar.dart';
-import 'bars/navigation_bar.dart';
+import 'bars/navigation_bar.dart' as navbar;
 import 'bars/palette/palette_dialog.dart';
 import 'bars/right_bar/right_bar.dart';
 
@@ -26,17 +26,17 @@ class MShortCutManager extends ShortcutManager {
   /// [RawKeyboard] reports. If not specified, uses [RawKeyboard.keysPressed]
   /// instead.
   @protected
-  bool handleKeypress(
+  KeyEventResult handleKeypress(
     BuildContext context,
     RawKeyEvent event, {
-    LogicalKeySet keysPressed,
+    LogicalKeySet? keysPressed,
   }) {
     if (event is! RawKeyDownEvent) {
-      return false;
+      return KeyEventResult.ignored;
     }
     assert(context != null);
     final LogicalKeySet keySet = keysPressed ?? LogicalKeySet.fromSet(RawKeyboard.instance.keysPressed);
-    Intent matchedIntent = shortcuts[keySet];
+    Intent? matchedIntent = shortcuts[keySet];
     if (matchedIntent == null) {
       // If there's not a more specific match, We also look for any keys that
       // have synonyms in the map.  This is for things like left and right shift
@@ -58,13 +58,13 @@ class MShortCutManager extends ShortcutManager {
       matchedIntent = shortcuts[LogicalKeySet.fromSet(pseudoKeys)];
     }
     if (matchedIntent != null) {
-      final BuildContext primaryContext = WidgetsBinding.instance.focusManager.primaryFocus?.context;
+      final BuildContext? primaryContext = WidgetsBinding.instance!.focusManager.primaryFocus?.context;
       if (primaryContext == null) {
-        return false;
+        return KeyEventResult.ignored;
       }
-      return Actions.invoke(primaryContext, matchedIntent, nullOk: true);
+      return Actions.invoke(primaryContext, matchedIntent) as KeyEventResult;
     }
-    return false;
+    return KeyEventResult.ignored;
   }
 
 }
@@ -85,7 +85,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
   @override
   void initState() {
     super.initState();
-    SchedulerBinding.instance.addPostFrameCallback((_) async {
+    SchedulerBinding.instance!.addPostFrameCallback((_) async {
       await showNewProjectDialog(context,);
       //FocusScope.of(context).requestFocus(workspaceNode);
     });
@@ -131,7 +131,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
             child: Column(
               children: <Widget>[
                 //TopNavigationBar(),
-                NavigationBar(
+                navbar.NavigationBar(
                   showVisual: showVisual,
                   onUpdate: (it) {
                     setState(() {
@@ -167,10 +167,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
 
 class VisualWorkspace extends StatelessWidget {
 
-  final VoidCallback onNewWidget;
-  final VoidCallback onTemplate;
+  final VoidCallback? onNewWidget;
+  final VoidCallback? onTemplate;
 
-  const VisualWorkspace({Key key, this.onNewWidget, this.onTemplate}) : super(key: key);
+  const VisualWorkspace({Key? key, this.onNewWidget, this.onTemplate}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -241,7 +241,7 @@ class CodeWorkspace extends StatelessWidget {
                 alignment: Alignment.topLeft,
                 child: SingleChildScrollView(
                   child: DartCode(
-                    code: AppScope.of(context).widgetBoard.getLayoutCode(),
+                    code: AppScope.of(context).widgetBoard!.getLayoutCode(),
                   ),
                 ),
               ),
@@ -261,14 +261,7 @@ class CodeWorkspace extends StatelessWidget {
                           ));
                           return;
                         }
-                        String path = await showPicker(
-                            context,
-                            searchFor: FlutterFileType.Folder,
-                            topInfo: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text("Select a folder to write the code to",
-                            textAlign: TextAlign.center,),
-                        ));
+                        String? path = await FilePicker.platform.getDirectoryPath();;
                         AppScope.of(context).saveToFolder(path);
                       },
                       child: Text(kIsWeb? "Copy to clipboard": "Export"),
